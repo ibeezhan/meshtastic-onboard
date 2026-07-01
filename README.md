@@ -29,7 +29,7 @@ pipx install adafruit-nrfutil    # only needed for flashing nRF52 boards
 ### Use as a Claude Code skill
 Clone into your skills directory — the repo root *is* the skill:
 ```bash
-git clone https://github.com/<you>/meshtastic-onboard ~/.claude/skills/meshtastic-onboard
+git clone https://github.com/ibeezhan/meshtastic-onboard ~/.claude/skills/meshtastic-onboard
 ```
 Then just ask: *"my meshtastic node can't see any nodes"*, *"flash stable firmware"*, *"give me a node report"*, *"put the node on my LAN"* — the skill loads automatically.
 
