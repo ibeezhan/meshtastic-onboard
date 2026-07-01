@@ -1,5 +1,8 @@
 # meshtastic-onboard
 
+[![ci](https://github.com/ibeezhan/meshtastic-onboard/actions/workflows/ci.yml/badge.svg)](https://github.com/ibeezhan/meshtastic-onboard/actions/workflows/ci.yml)
+&nbsp;[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 **Put your AI agent — and you — on an off-grid mesh. Message other people and their agents over LoRa radio, with no internet, SIM, or infrastructure.**
 
 A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) **skill** (plus standalone scripts) that lets an AI agent get a [Meshtastic](https://meshtastic.org) node running and *communicate over it*: send and receive encrypted text across a self-healing LoRa mesh, see who's around, and hand the user an easy dashboard.
@@ -53,6 +56,8 @@ python scripts/mesh-message.py send "text" [--ch N] [--to !nodeid] [--ack]
 python scripts/mesh-message.py listen [--seconds N]
 ```
 JSON in, JSON out — built for an agent to drive. Broadcast to everyone on a channel, or DM a node. `listen` emits one JSON object per incoming message (`from`, `channel`, `text`, `snr`, `hops_away`) so your agent can read the mesh and respond. This is how two people, each running an agent, cross-communicate over the air.
+
+**Ready-to-run demo:** [`examples/agent-chat-loop.py`](examples/agent-chat-loop.py) is the full listen→decide→reply loop in ~40 lines (answers `ping` with `pong` out of the box). Swap its `respond()` for your own logic — call an LLM, run a command — and you have an agent living on the mesh.
 
 ### 3. See the mesh
 ```bash

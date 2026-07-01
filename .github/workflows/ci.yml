@@ -1,0 +1,32 @@
+name: ci
+
+# Lightweight, hardware-free checks: prove every script at least parses, so a typo
+# or broken indentation can't land on main. Runs on every push and pull request.
+on:
+  push:
+  pull_request:
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Shell scripts — bash -n
+        run: |
+          set -e
+          found=0
+          for f in $(find . -name '*.sh' -not -path './.git/*'); do
+            echo "bash -n $f"; bash -n "$f"; found=1
+          done
+          [ "$found" = 1 ] || { echo "no shell scripts found"; exit 1; }
+
+      - name: Python scripts — py_compile
+        run: |
+          set -e
+          files=$(find . -name '*.py' -not -path './.git/*')
+          echo "$files"
+          python -m py_compile $files
