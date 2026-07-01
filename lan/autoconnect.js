@@ -1,4 +1,4 @@
-/* openclaw one-click auto-connect for the self-hosted Meshtastic web client.
+/* One-click auto-connect for the self-hosted Meshtastic web client.
  *
  * The client normally opens on "how do you want to connect?". Since we always
  * want the same HTTP proxy on this LAN, this script fills the address and clicks

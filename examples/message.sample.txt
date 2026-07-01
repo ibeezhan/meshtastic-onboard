@@ -1,0 +1,18 @@
+# Sending and receiving over the mesh with mesh-message.py
+# ALL VALUES ARE FABRICATED — no real node, key, message, or address.
+
+# --- Broadcast to everyone on the public channel ---
+$ python scripts/mesh-message.py send "net check, anyone around?"
+{"ok": true, "sent": "net check, anyone around?", "channel": 0, "to": "^all", "wantAck": false}
+
+# --- Direct-message one node, with a delivery ack ---
+$ python scripts/mesh-message.py send "meet at the north trailhead" --to !0a1b2c3d --ack
+{"ok": true, "sent": "meet at the north trailhead", "channel": 0, "to": "!0a1b2c3d", "wantAck": true}
+
+# --- Listen: one JSON object per incoming message (agent reads the mesh) ---
+$ python scripts/mesh-message.py listen --seconds 120
+{"ts": 1893456000, "from": "!0a1b2c3d", "from_self": false, "channel": 0, "snr": -6.5, "hops_away": 3, "text": "here, path is clear"}
+{"ts": 1893456042, "from": "!1122aabb", "from_self": false, "channel": 0, "snr": -14.0, "hops_away": 2, "text": "2 min out"}
+
+# An agent loop = listen (read) -> decide -> send (reply). Two people each running an
+# agent can converse entirely over LoRa, no internet. Ignore from_self:true entries.

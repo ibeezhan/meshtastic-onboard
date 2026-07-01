@@ -1,89 +1,75 @@
-# AGENTS.md — guidance for AI agents
+# AGENTS.md — machine contract for AI agents
 
-This repo is a Meshtastic node onboarding/debug toolkit. If you're an autonomous
-agent (Claude Code or similar) helping a user with a Meshtastic node, read this
-before acting. `SKILL.md` is the human-facing runbook; this file is the machine
-contract.
+You are an AI agent using this toolkit to put a user on the [Meshtastic](https://meshtastic.org)
+LoRa mesh and communicate over it. `SKILL.md` is the human-facing runbook; this is
+the tool contract. `README.md` is the pitch.
 
-## Golden rules
+## What you can do
 
-1. **Diagnose bottom-up. Do not skip layers.** A symptom at L4 ("no nodes") is
-   usually caused at L0–L2. Always confirm the USB link and device liveness before
-   touching config or firmware.
-2. **Liveness = the API answers. Nothing else.** On the T1000-E the USB product
-   string reads `..._BOOT` even when the application firmware is running. **Never**
-   conclude "stuck in bootloader" from that string, mounted drives, or LEDs. The
-   only proof of life is a successful `diagnose.py` / API connect.
-3. **Never fabricate secrets.** Do not invent a channel PSK, a `meshtastic.org/e/#`
-   share URL, a region, or a frequency. If the user wants a community channel, get
-   the *official* URL/key from them or a cited public source.
-4. **Confirm before irreversible or outward actions.** Flashing firmware, factory
-   resets, and anything that publishes/transmits should be confirmed with the user
-   first. Report failures honestly (show the actual error/output).
-5. **Only one process may own the USB serial port.** The bridge, a direct
-   `diagnose.py`, and the browser web-serial client are mutually exclusive. Prefer
-   running the **bridge** as the single owner and pointing everything else at TCP.
+1. **Connect** a Meshtastic node over USB and read its state.
+2. **Message** — send and receive encrypted text over the air (agent-to-agent, or to
+   other people and their agents). This is the primary use case.
+3. **Observe** the mesh — who's reachable, signal quality, live activity.
+4. **Expose** the node on the LAN so the human gets a dashboard / web client.
 
-## Decision tree
+## Core loop: communicate
 
 ```
-detect.sh → no /dev/cu.usbmodem*?
-    → suspect CHARGE-ONLY CABLE (most common) or asleep node. Ask user to swap
-      cable / press the button. STOP until a port appears.
-port exists → diagnose.py
-    → API answers? 
-        yes → check region:
-                UNSET → set region (e.g. EU_868). This alone causes "no nodes".
-                set   → check preset (LONG_FAST default), tx_enabled, channels.
-        no (times out) → serial API is silent → almost always a bad dev/nightly
-              firmware. Recommend flashing STABLE (flash-stable.sh). Confirm first.
-config OK but node list empty → this is NORMAL right after a flash/reset.
-    → run monitor.py; nodeDB refills over minutes–hours. Distinguish direct-RF
-      (non-null SNR) from relayed (null SNR). If still nothing after a sustained
-      run → L5 RF: antenna, indoors, out of range (placement, not config).
+# broadcast to everyone on the public channel
+python scripts/mesh-message.py send "text"
+# direct message a node
+python scripts/mesh-message.py send "text" --to !<nodeid>
+# read the mesh: one JSON object per incoming message
+python scripts/mesh-message.py listen --seconds N
 ```
+`listen` emits JSON lines: `{ts, from, from_self, channel, snr, hops_away, text}`.
+To hold a conversation, run `listen` (or parse `report.py`) to read, then `send` to
+reply. Ignore `from_self:true`. Reach = whoever shares the channel's key; `LongFast`
+(default key `AQ==`) is the global public channel.
 
-## Script contracts
+## Tool contracts
 
-All Python scripts prefer `~/.local/pipx/venvs/meshtastic/bin/python` (has the
-`meshtastic` lib + `pyserial`) and use hard timeouts so they never hang forever.
-`TARGET` for connect-capable scripts is `tcp` / `tcp:HOST` (via the bridge) or a
-`/dev/cu.usbmodem*` path / `serial`.
+All connect-capable scripts take `TARGET` = `tcp` / `tcp:HOST` (via the bridge) or a
+`/dev/cu.usbmodem*` path / `serial`. Python scripts prefer
+`~/.local/pipx/venvs/meshtastic/bin/python` and use hard timeouts.
 
-| Script | Args | Reads | Writes / side effects | Output to parse |
-|---|---|---|---|---|
-| `detect.sh` | — | USB tree | none | port list; "charge-only?" hint |
-| `diagnose.py` | `[TARGET]` | device | none | fw, region, preset, tx, hop, channels, node count |
-| `assert-config.py` | `[TARGET]` | device | none | `PASS`/`FAIL` lines per check |
-| `report.py` | `[TARGET] [LISTEN_SECS]` | device + live packets | none | full report incl. node table, messages, packet counts |
-| `monitor.py` | `[TARGET] [--seconds N]` | device + live packets | none | streamed packets + periodic node table |
-| `import-channel.sh` | `<share-url>` | — | **mutates channel set** on device | confirmation |
-| `flash-stable.sh` | — | network + device | **rewrites firmware** (MD5-verified) | progress + "Device programmed" |
-| `serial-tcp-bridge.py` | `[DEV] [PORT]` | owns USB | serves TCP :4403 | log lines |
-| `lan-dashboard.py` | `[DEV] [HTTP_PORT]` | owns USB | serves HTTP :8765 | log lines + JSON at `/api/info` |
+| Script | Args | Side effects | Output |
+|---|---|---|---|
+| `mesh-message.py send` | `"text" [--ch N] [--to !id] [--ack] [--target T]` | **transmits over the air** | JSON `{ok, sent, channel, to, wantAck}` |
+| `mesh-message.py listen` | `[--seconds N] [--target T]` | none | JSON line per received text message |
+| `report.py` | `[TARGET] [LISTEN_SECS]` | none | node table, messages, signal, packet counts |
+| `monitor.py` | `[TARGET] [--seconds N]` | none | streamed packets + periodic node table |
+| `diagnose.py` | `[TARGET]` | none | fw, region, preset, tx, channels, node count |
+| `assert-config.py` | `[TARGET]` | none | `PASS`/`FAIL` per check |
+| `detect.sh` | — | none | serial ports + USB tree |
+| `import-channel.sh` | `<share-url>` | **mutates channel set** | confirmation |
+| `flash-stable.sh` | — | **rewrites firmware** (MD5-verified) | progress |
+| `serial-tcp-bridge.py` | `[DEV] [PORT]` | owns USB; serves TCP :4403 | log lines |
+| `lan-dashboard.py` | `[DEV] [HTTP_PORT]` | owns USB; serves HTTP :8765 | log + JSON at `/api/info` |
 
-Scripts that **mutate** (`import-channel.sh`, `flash-stable.sh`) are the ones to
-gate behind explicit user confirmation. The rest are read-only/observational.
+**Gate behind explicit user confirmation:** `send` (public transmission),
+`import-channel.sh`, `flash-stable.sh`. Everything else is read-only/observational.
 
-## Environment assumptions & known traps
+## Rules
 
-- Built for **macOS** (`ioreg`, `lsof`, `ipconfig getifaddr`, `md5`, no GNU-only
-  flags, no `timeout`). Linux/Windows parity is a good contribution.
-- **T1000-E flashing** uses serial DFU: `adafruit-nrfutil dfu serial -pkg <ota.zip>
-  -p <port> -b 115200 -t 1200`. The `-t 1200` (1200-baud touch) is **required** to
-  wake the bootloader's DFU listener — without it you get `No data received`.
-- **macOS UF2 drag-drop trap:** `cp file.uf2 /Volumes/<BOOT>/` fails with
-  `could not copy extended attributes: Device not configured` and *truncates* the
-  write. Use `cat file.uf2 > /Volumes/<BOOT>/fw.uf2` instead.
-- **Moving the node re-enumerates USB** → a long-running bridge/dashboard holding a
-  stale handle sees `Errno 6: Device not configured`. The bridge auto-reconnects;
-  ad-hoc scripts should be restarted.
-- **nRF52 has no WiFi** → the node can't host the web UI or join the LAN; the
-  browser web client needs the bridge + http-proxy (see `lan/`).
+1. **Sending transmits publicly.** A `send` goes over the air to every node on that
+   channel — real people. Confirm intent, keep messages short, don't flood (LoRa is
+   low-bandwidth and duty-cycle-limited).
+2. **Never fabricate secrets** — no invented channel PSK, share URL, region, or
+   frequency. Get community channels from their official URL.
+3. **One process owns the USB port.** Run `serial-tcp-bridge.py` as the single owner
+   and point messaging/observability tools at `tcp:` so they share the node with the
+   dashboard. Don't open the raw serial port while the bridge holds it.
+4. **Confirm firmware flashes and config mutations** before running them, and report
+   failures with the actual error.
 
-## When you're stuck
+## If connect fails
 
-If two or three tool attempts fail the same way, stop and report to the user what
-you tried, the exact error, and your best hypothesis — don't loop. Hardware +
-radio problems often need a physical action only the user can take (swap cable,
-press button, move the node, accept a firmware flash).
+Don't loop. Check, in order: is there a `/dev/cu.usbmodem*` (else likely a
+**charge-only cable** — ask the user to swap it or wake the node)? Does `diagnose.py`
+answer (if it times out on a fresh board, recommend `flash-stable.sh`)? Is `region`
+set (not `UNSET`)? An empty node list right after a flash is **normal** — it refills
+over minutes to hours. Persistent silence with good config is an **RF/placement**
+problem (antenna, indoors, range), which only the user can fix physically. After two
+or three failed attempts, stop and report what you tried, the exact error, and your
+best hypothesis.
