@@ -1,0 +1,38 @@
+# Sample output of: python scripts/report.py serial 30
+# ALL VALUES ARE FABRICATED for illustration — no real node, key, or address.
+
+==================================================================
+MESHTASTIC NODE REPORT
+==================================================================
+  node         : Example Node  (EXMP)  !a1b2c3d4
+  firmware     : 2.7.x (tracker-t1000-e)
+  region/preset: EU_868 / LONG_FAST
+  tx_enabled   : True   hop_limit: 5
+  battery      : 87%   voltage: 3.98V
+  air util TX  : 0.041   channel util: 0.6
+  channels     :
+      [0] PRIMARY   LongFast       (default-key)
+      [1] SECONDARY MyRegion_Ch    (encrypted)
+------------------------------------------------------------------
+NODES: 4 total   |   2 direct (hops=0)   |   self=1
+  name      id          hops snr    batt  last heard
+  EXMP      !a1b2c3d4   ?    ?      87%   0s *self
+  ALFA      !0a1b2c3d   0    -6.5   92%   40s <direct
+  BRVO      !1122aabb   0    -14.0  ?%    5m  <direct
+  CHRL      !99887766   2    -18.5  ?%    3h
+------------------------------------------------------------------
+LISTENING 30s for live messages & packets ...
+------------------------------------------------------------------
+MESSAGES received in window: 1
+  [14:02:11] ch0 !0a1b2c3d: net check, anyone around?
+DIRECT-RF neighbors heard in window: 2
+  ALFA       !0a1b2c3d  snr=-6.5 rssi=-42
+  BRVO       !1122aabb  snr=-14.0 rssi=-88
+PACKET activity by type: {'NODEINFO_APP': 3, 'TELEMETRY_APP': 5, 'POSITION_APP': 2, 'TEXT_MESSAGE_APP': 1}
+==================================================================
+
+# Reading it:
+#   hops=0 + a real snr  = a DIRECT radio neighbor.
+#   snr = None           = relayed/multi-hop (or MQTT), not heard directly.
+#   LONG_FAST decodes to ~ -20 dB SNR, so -18 dB is real but faint (intermittent).
+#   No host-side message history — only messages during the listen window appear.

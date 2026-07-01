@@ -1,0 +1,35 @@
+# Sample output of: python scripts/diagnose.py
+# ALL VALUES ARE FABRICATED — no real node, key, or address.
+
+==================================================
+DEVICE / FIRMWARE
+  fw version   : 2.7.x
+  my node num  : 305419896   (!a1b2c3d4)
+  reboot count : 0
+==================================================
+LORA / REGION
+  region       : EU_868 ( 3 )
+  modem_preset : LONG_FAST
+  use_preset   : True
+  hop_limit    : 5
+  tx_enabled   : True
+  tx_power     : 27
+  freq slot    : 0
+==================================================
+CHANNELS
+  [0] role=PRIMARY   name='LongFast'      psk_len=1   (default public key)
+  [1] role=SECONDARY name='MyRegion_Ch'   psk_len=32  (encrypted)
+==================================================
+NODES (DB)
+  total nodes in DB: 4
+  ALFA   hops=0 snr=-6.5   lastHeard=40s
+  BRVO   hops=0 snr=-14.0  lastHeard=5m
+  CHRL   hops=2 snr=-18.5  lastHeard=3h
+==================================================
+
+# If this hangs / times out instead of printing: the serial API is SILENT.
+# On a node that enumerates, that usually means a bad dev/nightly firmware —
+# flash a stable release (scripts/flash-stable.sh).
+#
+# If region shows UNSET: the radio will not TX/RX and you will see NO nodes,
+# with no error. Set it (e.g. EU_868) first.

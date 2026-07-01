@@ -1,0 +1,25 @@
+# Sample output of: python scripts/monitor.py --seconds 180
+# ALL VALUES ARE FABRICATED — no real node or address.
+
+=== MONITOR started, 180s, node table every 60s ===
+[RX 14:00:03] from=!0a1b2c3d NODEINFO_APP    snr=-6.5  rssi=-42 hops=0
+[RX 14:00:21] from=!1122aabb TELEMETRY_APP   snr=-14.0 rssi=-88 hops=0
+[RX 14:00:44] from=!99887766 POSITION_APP    snr=None  rssi=None hops=2   <- relayed (no signal stats)
+
+--- t+1min  nodes=3  pkts=3 ---
+    ALFA     hops=0 snr=-6.5  last=17s
+    BRVO     hops=0 snr=-14.0 last=40s
+    CHRL     hops=2 snr=None  last=16s
+
+[RX 14:01:38] from=!0a1b2c3d TEXT_MESSAGE_APP snr=-7.0 rssi=-45 hops=0
+
+--- t+2min  nodes=3  pkts=5 ---
+    ALFA     hops=0 snr=-7.0  last=22s
+    BRVO     hops=0 snr=-14.0 last=1m
+    CHRL     hops=2 snr=None  last=1m
+
+=== monitor done ===
+
+# Right after a flash/factory-reset the node DB starts EMPTY and refills slowly as
+# nodes rebroadcast NodeInfo (minutes to hours) — that is normal, not a fault.
+# Packets with snr/rssi=None arrived relayed/multi-hop (or via MQTT), not direct RF.
